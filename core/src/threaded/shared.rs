@@ -1,9 +1,13 @@
 use crate::simulation::pheromones::PheromoneType;
 use crate::simulation::settings::SimulationSettings;
+use crate::simulation::stats::SimulationStats;
 use std::sync::atomic::{AtomicBool, AtomicU16, AtomicU32, AtomicU8, Ordering};
 
 pub struct SharedState {
+    // Stats
     ant_count: AtomicU16,
+    avg_step_duration_secs: AtomicU32,
+    // Settings
     is_paused: AtomicBool,
     steps_per_second: AtomicU8,
     pheromone_decay: AtomicU32,
@@ -15,6 +19,7 @@ impl SharedState {
     pub fn from_settings(settings: &SimulationSettings) -> Self {
         Self {
             ant_count: AtomicU16::new(0),
+            avg_step_duration_secs: AtomicU32::new(0),
             is_paused: AtomicBool::new(settings.paused),
             steps_per_second: AtomicU8::new(settings.steps_per_second),
             pheromone_decay: AtomicU32::new(settings.pheromone_decay.to_bits()),
@@ -33,12 +38,26 @@ impl SharedState {
         settings.drawn_pheromone_tribe = self.drawn_pheromone_tribe.load(Ordering::Relaxed);
     }
 
+    pub fn sync_stats(&self, stats: &SimulationStats) {
+        self.set_ant_count(stats.ant_count);
+        self.set_avg_step_duration_secs(stats.avg_step_duration_secs);
+    }
+
     pub fn ant_count(&self) -> u16 {
         self.ant_count.load(Ordering::Relaxed)
     }
 
     pub fn set_ant_count(&self, ant_count: u16) {
         self.ant_count.store(ant_count, Ordering::Relaxed);
+    }
+
+    pub fn avg_step_duration_secs(&self) -> f32 {
+        f32::from_bits(self.avg_step_duration_secs.load(Ordering::Relaxed))
+    }
+
+    pub fn set_avg_step_duration_secs(&self, avg_step_duration_secs: f32) {
+        self.avg_step_duration_secs
+            .store(avg_step_duration_secs.to_bits(), Ordering::Relaxed);
     }
 
     pub fn is_paused(&self) -> bool {

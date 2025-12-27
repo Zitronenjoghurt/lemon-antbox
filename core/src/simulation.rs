@@ -2,20 +2,24 @@ use crate::simulation::ant::Ant;
 use crate::simulation::cell::Cell;
 use crate::simulation::pheromones::{PheromoneType, Pheromones};
 use crate::simulation::settings::SimulationSettings;
+use crate::simulation::stats::SimulationStats;
 use crate::utils::color::alpha_blend;
 use rayon::iter::ParallelIterator;
 use rayon::prelude::IntoParallelRefIterator;
+use std::time::Instant;
 
 mod ant;
 mod cell;
 pub mod pheromones;
 pub mod settings;
+pub mod stats;
 
 pub struct Simulation {
     ants: Vec<Ant>,
     cells: Vec<Cell>,
     pheromones: Pheromones,
     settings: SimulationSettings,
+    stats: SimulationStats,
 }
 
 impl Simulation {
@@ -26,6 +30,7 @@ impl Simulation {
             cells,
             pheromones: Pheromones::new(settings.width, settings.height, settings.tribe_count),
             settings,
+            stats: SimulationStats::default(),
         }
     }
 
@@ -34,12 +39,12 @@ impl Simulation {
         self.cells = vec![Cell::default(); self.settings.cell_count()];
     }
 
-    pub fn settings(&self) -> &SimulationSettings {
-        &self.settings
-    }
-
     pub fn settings_mut(&mut self) -> &mut SimulationSettings {
         &mut self.settings
+    }
+
+    pub fn stats(&self) -> &SimulationStats {
+        &self.stats
     }
 
     pub fn ant_count(&self) -> u16 {
@@ -111,6 +116,8 @@ impl Simulation {
 // Step
 impl Simulation {
     pub fn step(&mut self) {
+        let start = Instant::now();
+
         if self.settings.paused {
             return;
         }
@@ -126,6 +133,8 @@ impl Simulation {
         }
 
         self.pheromones.decay(self.settings.pheromone_decay);
+
+        self.collect_stats(start);
     }
 
     fn compute_ant_move(&self, ant: &Ant) -> AntMove {
@@ -225,6 +234,15 @@ impl Simulation {
             PheromoneType::Home
         };
         pheromones.deposit(ant, deposit_pheromone, settings.ant_pheromone_strength);
+    }
+
+    fn collect_stats(&mut self, instant_start: Instant) {
+        self.stats.ant_count = self.ants.len() as u16;
+
+        let duration = instant_start.elapsed().as_secs_f32();
+        const SMOOTHING: f32 = 0.05;
+        self.stats.avg_step_duration_secs =
+            self.stats.avg_step_duration_secs * (1.0 - SMOOTHING) + duration * SMOOTHING;
     }
 }
 

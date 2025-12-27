@@ -41,7 +41,7 @@ impl ThreadedContext {
 
     fn sync_state(&mut self) {
         self.shared.sync_settings(self.simulation.settings_mut());
-        self.shared.set_ant_count(self.simulation.ant_count());
+        self.shared.sync_stats(self.simulation.stats());
     }
 
     fn sync_frame(&mut self) {
