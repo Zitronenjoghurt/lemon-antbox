@@ -1,3 +1,4 @@
+use crate::simulation::settings::SimulationSettings;
 use crate::simulation::Simulation;
 use crate::threaded::command::SimulationCommand;
 use crate::threaded::context::ThreadedContext;
@@ -17,22 +18,22 @@ pub struct ThreadedSimulation {
     command_tx: Sender<SimulationCommand>,
     frame_reader: triple_buffer::Output<Vec<u8>>,
     shared: Arc<SharedState>,
-    thread: JoinHandle<()>,
+    _thread: JoinHandle<()>,
 }
 
 impl ThreadedSimulation {
-    pub fn spawn(height: u16, width: u16) -> Self {
+    pub fn spawn(settings: SimulationSettings) -> Self {
         let (command_tx, command_rx) = std::sync::mpsc::channel();
 
-        let shared = Arc::new(SharedState::default());
+        let shared = Arc::new(SharedState::from_settings(&settings));
         let shared_clone = shared.clone();
 
-        let buf_size = height as usize * width as usize * 4;
+        let buf_size = settings.cell_count() * 4;
         let (frame_writer, frame_reader) = TripleBuffer::new(&vec![0u8; buf_size]).split();
 
         let thread = thread::spawn(move || {
             let context = ThreadedContext {
-                simulation: Simulation::new(height, width),
+                simulation: Simulation::new(settings),
                 command_rx,
                 shared: shared_clone,
                 frame_writer,
@@ -44,7 +45,7 @@ impl ThreadedSimulation {
             command_tx,
             frame_reader,
             shared,
-            thread,
+            _thread: thread,
         }
     }
 

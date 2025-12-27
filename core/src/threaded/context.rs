@@ -40,7 +40,7 @@ impl ThreadedContext {
     }
 
     fn sync_state(&mut self) {
-        self.simulation.set_paused(self.shared.is_paused());
+        self.shared.sync_settings(self.simulation.settings_mut());
         self.shared.set_ant_count(self.simulation.ant_count());
     }
 

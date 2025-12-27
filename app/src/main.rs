@@ -1,4 +1,5 @@
 use crate::app::App;
+use lemon_antbox_core::simulation::settings::SimulationSettings;
 use std::sync::Arc;
 use winit::dpi::LogicalSize;
 use winit::event_loop::{ControlFlow, EventLoop};
@@ -10,6 +11,7 @@ mod ui;
 
 const WIDTH: u16 = 640;
 const HEIGHT: u16 = 360;
+const TRIBE_COUNT: u8 = 2;
 
 fn main() {
     let event_loop = EventLoop::new().unwrap();
@@ -25,7 +27,13 @@ fn main() {
             .unwrap(),
     );
 
-    let mut app = App::new(window.clone(), WIDTH, HEIGHT);
+    let settings = SimulationSettings {
+        width: WIDTH,
+        height: HEIGHT,
+        tribe_count: TRIBE_COUNT,
+        ..Default::default()
+    };
+    let mut app = App::new(window.clone(), settings);
 
     event_loop
         .run(move |event, target| {
