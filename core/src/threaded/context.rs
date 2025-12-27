@@ -41,6 +41,7 @@ impl ThreadedContext {
 
     fn sync_state(&mut self) {
         self.simulation.set_paused(self.shared.is_paused());
+        self.shared.set_ant_count(self.simulation.ant_count());
     }
 
     fn sync_frame(&mut self) {
@@ -51,7 +52,9 @@ impl ThreadedContext {
     pub fn handle_command(&mut self, command: SimulationCommand) -> bool {
         let mut do_continue = true;
         match command {
+            SimulationCommand::Clear => self.simulation.clear(),
             SimulationCommand::Shutdown => do_continue = false,
+            SimulationCommand::SpawnAnt((x, y)) => self.simulation.spawn_ant(x, y),
         }
         do_continue
     }

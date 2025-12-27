@@ -30,9 +30,15 @@ impl UiWindow for SimulationSettingsWindow<'_> {
     }
 
     fn render_content(&mut self, ui: &mut Ui, sim: &ThreadedSimulation) {
-        let mut paused = sim.is_paused();
-        egui::Checkbox::new(&mut paused, "Paused").ui(ui);
-        sim.set_paused(paused);
+        ui.horizontal(|ui| {
+            let mut paused = sim.is_paused();
+            egui::Checkbox::new(&mut paused, "Paused").ui(ui);
+            sim.set_paused(paused);
+
+            if ui.button("Clear").clicked() {
+                sim.clear();
+            }
+        });
     }
 }
 

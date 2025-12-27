@@ -8,8 +8,8 @@ mod app;
 mod gfx;
 mod ui;
 
-const WIDTH: u32 = 640;
-const HEIGHT: u32 = 360;
+const WIDTH: u16 = 640;
+const HEIGHT: u16 = 360;
 
 fn main() {
     let event_loop = EventLoop::new().unwrap();

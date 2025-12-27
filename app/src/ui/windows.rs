@@ -4,6 +4,7 @@ use lemon_antbox_core::threaded::ThreadedSimulation;
 
 pub mod main;
 mod simulation_settings;
+mod simulation_stats;
 
 pub trait UiWindow: Sized {
     fn id() -> Id;

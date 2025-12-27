@@ -21,13 +21,13 @@ pub struct ThreadedSimulation {
 }
 
 impl ThreadedSimulation {
-    pub fn spawn(height: u32, width: u32) -> Self {
+    pub fn spawn(height: u16, width: u16) -> Self {
         let (command_tx, command_rx) = std::sync::mpsc::channel();
 
         let shared = Arc::new(SharedState::default());
         let shared_clone = shared.clone();
 
-        let buf_size = (height * width * 4) as usize;
+        let buf_size = height as usize * width as usize * 4;
         let (frame_writer, frame_reader) = TripleBuffer::new(&vec![0u8; buf_size]).split();
 
         let thread = thread::spawn(move || {
@@ -48,7 +48,7 @@ impl ThreadedSimulation {
         }
     }
 
-    pub fn send_command(&self, command: command::SimulationCommand) {
+    pub fn send_command(&self, command: SimulationCommand) {
         let _ = self.command_tx.send(command);
     }
 
@@ -68,10 +68,30 @@ impl ThreadedSimulation {
     pub fn toggle_paused(&self) {
         self.shared.set_paused(!self.shared.is_paused());
     }
+
+    pub fn steps_per_second(&self) -> u8 {
+        self.shared.steps_per_second()
+    }
+
+    pub fn set_steps_per_second(&self, steps_per_second: u8) {
+        self.shared.set_steps_per_second(steps_per_second);
+    }
+
+    pub fn ant_count(&self) -> u16 {
+        self.shared.ant_count()
+    }
+
+    pub fn clear(&self) {
+        self.send_command(SimulationCommand::Clear);
+    }
+
+    pub fn spawn_ant(&self, x: u16, y: u16) {
+        self.send_command(SimulationCommand::SpawnAnt((x, y)));
+    }
 }
 
 impl Drop for ThreadedSimulation {
     fn drop(&mut self) {
-        self.send_command(command::SimulationCommand::Shutdown);
+        self.send_command(SimulationCommand::Shutdown);
     }
 }

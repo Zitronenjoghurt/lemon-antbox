@@ -13,7 +13,7 @@ pub struct App {
 }
 
 impl App {
-    pub fn new(window: Arc<Window>, width: u32, height: u32) -> Self {
+    pub fn new(window: Arc<Window>, width: u16, height: u16) -> Self {
         Self {
             gfx: Gfx::new(window, width, height),
             ui: Ui::default(),
@@ -51,7 +51,13 @@ impl App {
         }
     }
 
-    fn update(&mut self) {}
+    fn update(&mut self) {
+        if self.ui.cursor_pressed()
+            && let Some(coords) = self.cursor_coords()
+        {
+            self.simulation.spawn_ant(coords.0, coords.1);
+        }
+    }
 
     fn render(&mut self) {
         self.gfx.prepare(|ctx| {
@@ -60,5 +66,11 @@ impl App {
 
         self.simulation.draw(self.gfx.pixels_frame());
         self.gfx.render();
+    }
+
+    fn cursor_coords(&self) -> Option<(u16, u16)> {
+        self.gfx
+            .window_pos_to_pixel(self.ui.cursor_pos())
+            .map(|(x, y)| (x as u16, y as u16))
     }
 }

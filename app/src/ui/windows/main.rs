@@ -1,4 +1,5 @@
 use crate::ui::windows::simulation_settings::SimulationSettingsWindow;
+use crate::ui::windows::simulation_stats::SimulationStatsWindow;
 use crate::ui::windows::{ToggleableUiWindow, UiWindow};
 use egui::{Id, Ui, WidgetText};
 use lemon_antbox_core::threaded::ThreadedSimulation;
@@ -6,6 +7,7 @@ use lemon_antbox_core::threaded::ThreadedSimulation;
 pub struct MainWindowState {
     pub is_open: bool,
     simulation_settings_open: bool,
+    simulation_stats_open: bool,
 }
 
 impl Default for MainWindowState {
@@ -13,6 +15,7 @@ impl Default for MainWindowState {
         Self {
             is_open: true,
             simulation_settings_open: false,
+            simulation_stats_open: false,
         }
     }
 }
@@ -45,8 +48,13 @@ impl UiWindow for MainWindow<'_> {
     }
 
     fn render_content(&mut self, ui: &mut Ui, sim: &ThreadedSimulation) {
-        SimulationSettingsWindow::new(&mut self.state.simulation_settings_open)
-            .toggle_button(ui)
-            .show(ui.ctx(), sim);
+        ui.horizontal(|ui| {
+            SimulationSettingsWindow::new(&mut self.state.simulation_settings_open)
+                .toggle_button(ui)
+                .show(ui.ctx(), sim);
+            SimulationStatsWindow::new(&mut self.state.simulation_stats_open)
+                .toggle_button(ui)
+                .show(ui.ctx(), sim);
+        });
     }
 }

@@ -10,7 +10,7 @@ mod windows;
 
 #[derive(Default)]
 pub struct Ui {
-    cursor_pos: (f64, f64),
+    cursor_pos: (f32, f32),
     cursor_pressed: bool,
     main_window: MainWindowState,
 }
@@ -21,7 +21,7 @@ impl Ui {
     }
 
     pub fn on_cursor_moved(&mut self, pos: PhysicalPosition<f64>) {
-        self.cursor_pos = (pos.x, pos.y)
+        self.cursor_pos = (pos.x as f32, pos.y as f32)
     }
 
     pub fn on_mouse_input(&mut self, state: ElementState, button: MouseButton) {
@@ -48,5 +48,13 @@ impl Ui {
             }
             _ => {}
         }
+    }
+
+    pub fn cursor_pos(&self) -> (f32, f32) {
+        self.cursor_pos
+    }
+
+    pub fn cursor_pressed(&self) -> bool {
+        self.cursor_pressed
     }
 }

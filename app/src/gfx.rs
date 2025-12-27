@@ -18,11 +18,17 @@ pub struct Gfx {
 }
 
 impl Gfx {
-    pub fn new(window: Arc<Window>, width: u32, height: u32) -> Self {
+    pub fn new(window: Arc<Window>, width: u16, height: u16) -> Self {
         let size = window.inner_size();
 
         let surface = SurfaceTexture::new(size.width, size.height, window.clone());
-        let pixels = Pixels::new(width, height, surface).unwrap();
+        let mut pixels = Pixels::new(width as u32, height as u32, surface).unwrap();
+        pixels.clear_color(wgpu::Color {
+            r: 0.01,
+            g: 0.01,
+            b: 0.01,
+            a: 1.0,
+        });
 
         let egui_ctx = egui::Context::default();
         egui_ctx.set_pixels_per_point(1.5);
@@ -156,5 +162,9 @@ impl Gfx {
 
     pub fn on_egui_window_event(&mut self, window_event: &WindowEvent) -> EventResponse {
         self.egui_state.on_window_event(&self.window, window_event)
+    }
+
+    pub fn egui_ctx(&self) -> &egui::Context {
+        &self.egui_ctx
     }
 }
