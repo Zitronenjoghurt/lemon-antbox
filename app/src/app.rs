@@ -1,6 +1,6 @@
 use crate::gfx::Gfx;
 use crate::ui::Ui;
-use lemon_antbox_core::simulation::Simulation;
+use lemon_antbox_core::threaded::ThreadedSimulation;
 use std::sync::Arc;
 use winit::event::{Event, WindowEvent};
 use winit::event_loop::EventLoopWindowTarget;
@@ -8,16 +8,16 @@ use winit::window::Window;
 
 pub struct App {
     gfx: Gfx,
-    simulation: Simulation,
     ui: Ui,
+    simulation: ThreadedSimulation,
 }
 
 impl App {
     pub fn new(window: Arc<Window>, width: u32, height: u32) -> Self {
         Self {
             gfx: Gfx::new(window, width, height),
-            simulation: Simulation::new(width, height),
             ui: Ui::default(),
+            simulation: ThreadedSimulation::spawn(height, width),
         }
     }
 

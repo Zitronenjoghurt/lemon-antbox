@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-lemon-antbox-core = { workspace = true }
+lemon-antbox-core = { workspace = true, features = ["threaded"] }
 egui = "0.26"
 egui-wgpu = "0.26"
 egui-winit = "0.26"
