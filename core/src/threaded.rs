@@ -56,6 +56,18 @@ impl ThreadedSimulation {
         let buffer = self.frame_reader.read();
         frame.copy_from_slice(buffer);
     }
+
+    pub fn is_paused(&self) -> bool {
+        self.shared.is_paused()
+    }
+
+    pub fn set_paused(&self, paused: bool) {
+        self.shared.set_paused(paused)
+    }
+
+    pub fn toggle_paused(&self) {
+        self.shared.set_paused(!self.shared.is_paused());
+    }
 }
 
 impl Drop for ThreadedSimulation {

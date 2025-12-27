@@ -6,6 +6,7 @@ edition = "2024"
 [dependencies]
 lemon-antbox-core = { workspace = true, features = ["threaded"] }
 egui = "0.26"
+egui-phosphor = "0.11.0"
 egui-wgpu = "0.26"
 egui-winit = "0.26"
 pixels = "0.15"

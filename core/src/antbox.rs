@@ -19,7 +19,7 @@ impl AntBox {
 
     pub fn draw(&self, frame: &mut [u8]) {
         for pixel in frame.chunks_exact_mut(4) {
-            pixel.copy_from_slice(&[120, 120, 120, 255]);
+            pixel.copy_from_slice(&[50, 50, 50, 255]);
         }
     }
 }

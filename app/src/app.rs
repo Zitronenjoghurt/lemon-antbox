@@ -31,14 +31,14 @@ impl App {
                     WindowEvent::Resized(size) if size.width > 0 && size.height > 0 => {
                         self.gfx.resize(size.width, size.height);
                     }
-                    WindowEvent::ScaleFactorChanged { scale_factor, .. } => {
-                        self.gfx.set_pixels_per_point(scale_factor as f32);
-                    }
                     WindowEvent::CursorMoved { position, .. } => {
                         self.ui.on_cursor_moved(position);
                     }
                     WindowEvent::MouseInput { state, button, .. } if !response.consumed => {
                         self.ui.on_mouse_input(state, button);
+                    }
+                    WindowEvent::KeyboardInput { event, .. } => {
+                        self.ui.on_keyboard_input(&self.simulation, &event);
                     }
                     _ => {}
                 }
@@ -54,12 +54,11 @@ impl App {
     fn update(&mut self) {}
 
     fn render(&mut self) {
-        self.simulation.draw(self.gfx.pixels_frame());
-
         self.gfx.prepare(|ctx| {
-            self.ui.draw(ctx);
+            self.ui.draw(ctx, &self.simulation);
         });
 
+        self.simulation.draw(self.gfx.pixels_frame());
         self.gfx.render();
     }
 }

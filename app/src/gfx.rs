@@ -1,3 +1,4 @@
+use egui::FontDefinitions;
 use egui_wgpu::{wgpu, ScreenDescriptor};
 use egui_winit::EventResponse;
 use pixels::{Pixels, SurfaceTexture};
@@ -19,19 +20,29 @@ pub struct Gfx {
 impl Gfx {
     pub fn new(window: Arc<Window>, width: u32, height: u32) -> Self {
         let size = window.inner_size();
-        let scale_factor = window.scale_factor() as f32;
 
         let surface = SurfaceTexture::new(size.width, size.height, window.clone());
         let pixels = Pixels::new(width, height, surface).unwrap();
 
         let egui_ctx = egui::Context::default();
+        egui_ctx.set_pixels_per_point(1.5);
+        let mut fonts = FontDefinitions::default();
+        fonts.font_data.insert(
+            "phosphor".into(),
+            egui::FontData::from_static(egui_phosphor::Variant::Regular.font_bytes()),
+        );
+        if let Some(font_keys) = fonts.families.get_mut(&egui::FontFamily::Proportional) {
+            font_keys.insert(1, "phosphor".into());
+        }
+        egui_ctx.set_fonts(fonts);
+
         let max_texture_size = pixels.device().limits().max_texture_dimension_2d as usize;
 
         let egui_state = egui_winit::State::new(
             egui_ctx.clone(),
             egui::ViewportId::ROOT,
             &window,
-            Some(scale_factor),
+            None,
             Some(max_texture_size),
         );
 
@@ -40,7 +51,7 @@ impl Gfx {
 
         let screen_descriptor = ScreenDescriptor {
             size_in_pixels: [size.width, size.height],
-            pixels_per_point: scale_factor,
+            pixels_per_point: 1.5,
         };
 
         Self {
@@ -140,6 +151,7 @@ impl Gfx {
 
     pub fn set_pixels_per_point(&mut self, pixels_per_point: f32) {
         self.screen_descriptor.pixels_per_point = pixels_per_point;
+        self.egui_ctx.set_pixels_per_point(pixels_per_point);
     }
 
     pub fn on_egui_window_event(&mut self, window_event: &WindowEvent) -> EventResponse {
