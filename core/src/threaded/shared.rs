@@ -1,3 +1,4 @@
+use crate::simulation::pheromones::PheromoneType;
 use crate::simulation::settings::SimulationSettings;
 use std::sync::atomic::{AtomicBool, AtomicU16, AtomicU32, AtomicU8, Ordering};
 
@@ -6,17 +7,8 @@ pub struct SharedState {
     is_paused: AtomicBool,
     steps_per_second: AtomicU8,
     pheromone_decay: AtomicU32,
-}
-
-impl Default for SharedState {
-    fn default() -> Self {
-        Self {
-            ant_count: AtomicU16::new(0),
-            is_paused: AtomicBool::new(false),
-            steps_per_second: AtomicU8::new(60),
-            pheromone_decay: AtomicU32::new(0.995 as u32),
-        }
-    }
+    drawn_pheromone: AtomicU8,
+    drawn_pheromone_tribe: AtomicU8,
 }
 
 impl SharedState {
@@ -25,14 +17,20 @@ impl SharedState {
             ant_count: AtomicU16::new(0),
             is_paused: AtomicBool::new(settings.paused),
             steps_per_second: AtomicU8::new(settings.steps_per_second),
-            pheromone_decay: AtomicU32::new(settings.pheromone_decay as u32),
+            pheromone_decay: AtomicU32::new(settings.pheromone_decay.to_bits()),
+            drawn_pheromone: AtomicU8::new(
+                settings.drawn_pheromone.map(|p| p as u8).unwrap_or(255),
+            ),
+            drawn_pheromone_tribe: AtomicU8::new(settings.drawn_pheromone_tribe),
         }
     }
 
     pub fn sync_settings(&self, settings: &mut SimulationSettings) {
         settings.paused = self.is_paused.load(Ordering::Relaxed);
         settings.steps_per_second = self.steps_per_second.load(Ordering::Relaxed);
-        settings.pheromone_decay = self.pheromone_decay.load(Ordering::Relaxed) as f32;
+        settings.pheromone_decay = f32::from_bits(self.pheromone_decay.load(Ordering::Relaxed));
+        settings.drawn_pheromone = self.drawn_pheromone.load(Ordering::Relaxed).try_into().ok();
+        settings.drawn_pheromone_tribe = self.drawn_pheromone_tribe.load(Ordering::Relaxed);
     }
 
     pub fn ant_count(&self) -> u16 {
@@ -61,10 +59,28 @@ impl SharedState {
     }
 
     pub fn pheromone_decay(&self) -> f32 {
-        self.pheromone_decay.load(Ordering::Relaxed) as f32
+        f32::from_bits(self.pheromone_decay.load(Ordering::Relaxed))
     }
 
     pub fn set_pheromone_decay(&self, decay: f32) {
-        self.pheromone_decay.store(decay as u32, Ordering::Relaxed);
+        self.pheromone_decay
+            .store(decay.to_bits(), Ordering::Relaxed);
+    }
+
+    pub fn drawn_pheromone(&self) -> Option<PheromoneType> {
+        self.drawn_pheromone.load(Ordering::Relaxed).try_into().ok()
+    }
+
+    pub fn set_drawn_pheromone(&self, pheromone: Option<PheromoneType>) {
+        self.drawn_pheromone
+            .store(pheromone.map(|p| p as u8).unwrap_or(255), Ordering::Relaxed);
+    }
+
+    pub fn drawn_pheromone_tribe(&self) -> u8 {
+        self.drawn_pheromone_tribe.load(Ordering::Relaxed)
+    }
+
+    pub fn set_drawn_pheromone_tribe(&self, tribe: u8) {
+        self.drawn_pheromone_tribe.store(tribe, Ordering::Relaxed);
     }
 }

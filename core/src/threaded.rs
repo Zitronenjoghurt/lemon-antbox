@@ -17,7 +17,7 @@ mod shared;
 pub struct ThreadedSimulation {
     command_tx: Sender<SimulationCommand>,
     frame_reader: triple_buffer::Output<Vec<u8>>,
-    shared: Arc<SharedState>,
+    state: Arc<SharedState>,
     _thread: JoinHandle<()>,
 }
 
@@ -44,7 +44,7 @@ impl ThreadedSimulation {
         Self {
             command_tx,
             frame_reader,
-            shared,
+            state: shared,
             _thread: thread,
         }
     }
@@ -58,28 +58,12 @@ impl ThreadedSimulation {
         frame.copy_from_slice(buffer);
     }
 
-    pub fn is_paused(&self) -> bool {
-        self.shared.is_paused()
-    }
-
-    pub fn set_paused(&self, paused: bool) {
-        self.shared.set_paused(paused)
-    }
-
     pub fn toggle_paused(&self) {
-        self.shared.set_paused(!self.shared.is_paused());
+        self.state.set_paused(!self.state.is_paused());
     }
 
-    pub fn steps_per_second(&self) -> u8 {
-        self.shared.steps_per_second()
-    }
-
-    pub fn set_steps_per_second(&self, steps_per_second: u8) {
-        self.shared.set_steps_per_second(steps_per_second);
-    }
-
-    pub fn ant_count(&self) -> u16 {
-        self.shared.ant_count()
+    pub fn state(&self) -> &SharedState {
+        &self.state
     }
 
     pub fn clear(&self) {

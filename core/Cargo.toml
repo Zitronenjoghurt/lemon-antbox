@@ -10,5 +10,8 @@ threaded = ["triple_buffer"]
 [dependencies]
 bitflags = "2.10.0"
 fastrand = "2.3.0"
+num_enum = { workspace = true }
 rayon = "1.11.0"
+strum = { workspace = true }
+strum_macros = "0.27.2"
 triple_buffer = { version = "8.1.1", optional = true }

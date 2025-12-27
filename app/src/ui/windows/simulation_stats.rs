@@ -35,7 +35,7 @@ impl UiWindow for SimulationStatsWindow<'_> {
             .striped(true)
             .show(ui, |ui| {
                 ui.label("Ant Count");
-                ui.label(sim.ant_count().to_string());
+                ui.label(sim.state().ant_count().to_string());
                 ui.end_row();
             });
     }

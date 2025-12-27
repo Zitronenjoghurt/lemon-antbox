@@ -2,12 +2,13 @@ use crate::simulation::ant::Ant;
 use crate::simulation::cell::Cell;
 use crate::simulation::pheromones::{PheromoneType, Pheromones};
 use crate::simulation::settings::SimulationSettings;
+use crate::utils::color::alpha_blend;
 use rayon::iter::ParallelIterator;
 use rayon::prelude::IntoParallelRefIterator;
 
 mod ant;
 mod cell;
-mod pheromones;
+pub mod pheromones;
 pub mod settings;
 
 pub struct Simulation {
@@ -67,6 +68,7 @@ impl Simulation {
 impl Simulation {
     pub fn draw(&self, frame: &mut [u8]) {
         self.draw_cells(frame);
+        self.draw_pheromones(frame);
         self.draw_ants(frame);
     }
 
@@ -74,6 +76,28 @@ impl Simulation {
         for ant in &self.ants {
             let index = self.coords_to_index(ant.x as u16, ant.y as u16) * 4;
             frame[index..index + 4].copy_from_slice(&ant.color_rgba());
+        }
+    }
+
+    fn draw_pheromones(&self, frame: &mut [u8]) {
+        if self.settings.drawn_pheromone_tribe >= self.settings.tribe_count {
+            return;
+        }
+
+        let Some(pheromone) = self.settings.drawn_pheromone else {
+            return;
+        };
+
+        for (value, pixel) in self
+            .pheromones
+            .get_layer(self.settings.drawn_pheromone_tribe, pheromone)
+            .iter()
+            .zip(frame.chunks_exact_mut(4))
+        {
+            let alpha = ((*value / self.settings.drawn_pheromone_max_heat) * 255.0) as u8;
+            let color = [255, 0, 0, alpha];
+            let final_color = alpha_blend(color, pixel.try_into().unwrap());
+            pixel.copy_from_slice(&final_color);
         }
     }
 

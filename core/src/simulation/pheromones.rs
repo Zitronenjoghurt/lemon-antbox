@@ -1,12 +1,22 @@
 use crate::simulation::ant::Ant;
+use num_enum::{IntoPrimitive, TryFromPrimitive};
 use rayon::prelude::*;
+use std::fmt::Display;
+use strum_macros::EnumIter;
 
 const PHEROMONE_COUNT: usize = 2;
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, IntoPrimitive, TryFromPrimitive, EnumIter)]
+#[repr(u8)]
 pub enum PheromoneType {
     Home = 0,
     Food = 1,
+}
+
+impl Display for PheromoneType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}", self)
+    }
 }
 
 pub struct Pheromones {
@@ -39,10 +49,14 @@ impl Pheromones {
         self.layers[self.layer_index(tribe, pheromone)][self.grid_index(x, y)]
     }
 
+    pub fn get_layer(&self, tribe: u8, pheromone: PheromoneType) -> &[f32] {
+        &self.layers[self.layer_index(tribe, pheromone)]
+    }
+
     pub fn put(&mut self, tribe: u8, pheromone_type: PheromoneType, x: u16, y: u16, value: f32) {
         let layer_index = self.layer_index(tribe, pheromone_type);
         let grid_index = self.grid_index(x, y);
-        self.layers[layer_index][grid_index] = value;
+        self.layers[layer_index][grid_index] += value;
     }
 
     pub fn deposit(&mut self, ant: &Ant, pheromone_type: PheromoneType, value: f32) {
