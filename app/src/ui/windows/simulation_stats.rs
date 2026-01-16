@@ -38,6 +38,14 @@ impl UiWindow for SimulationStatsWindow<'_> {
                 ui.label(sim.state().ant_count().to_string());
                 ui.end_row();
 
+                ui.label("Ants with Food");
+                ui.label(sim.state().ants_with_food().to_string());
+                ui.end_row();
+
+                ui.label("Total Food");
+                ui.label(sim.state().total_food().to_string());
+                ui.end_row();
+
                 let avg_step_duration_secs = sim.state().avg_step_duration_secs();
                 ui.label("Avg. Step Duration");
                 ui.label(format!("{:.02}ms", avg_step_duration_secs * 1000.0));

@@ -1,11 +1,13 @@
 use crate::simulation::pheromones::PheromoneType;
 use crate::simulation::settings::SimulationSettings;
 use crate::simulation::stats::SimulationStats;
-use std::sync::atomic::{AtomicBool, AtomicU16, AtomicU32, AtomicU8, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU16, AtomicU32, AtomicU64, AtomicU8, Ordering};
 
 pub struct SharedState {
     // Stats
     ant_count: AtomicU16,
+    ants_with_food: AtomicU16,
+    total_food: AtomicU64,
     avg_step_duration_secs: AtomicU32,
     // Settings
     is_paused: AtomicBool,
@@ -13,12 +15,15 @@ pub struct SharedState {
     pheromone_decay: AtomicU32,
     drawn_pheromone: AtomicU8,
     drawn_pheromone_tribe: AtomicU8,
+    tribe_count: AtomicU8,
 }
 
 impl SharedState {
     pub fn from_settings(settings: &SimulationSettings) -> Self {
         Self {
             ant_count: AtomicU16::new(0),
+            ants_with_food: AtomicU16::new(0),
+            total_food: AtomicU64::new(0),
             avg_step_duration_secs: AtomicU32::new(0),
             is_paused: AtomicBool::new(settings.paused),
             steps_per_second: AtomicU8::new(settings.steps_per_second),
@@ -27,6 +32,7 @@ impl SharedState {
                 settings.drawn_pheromone.map(|p| p as u8).unwrap_or(255),
             ),
             drawn_pheromone_tribe: AtomicU8::new(settings.drawn_pheromone_tribe),
+            tribe_count: AtomicU8::new(settings.tribe_count),
         }
     }
 
@@ -40,6 +46,8 @@ impl SharedState {
 
     pub fn sync_stats(&self, stats: &SimulationStats) {
         self.set_ant_count(stats.ant_count);
+        self.set_ants_with_food(stats.ants_with_food);
+        self.set_total_food(stats.total_food);
         self.set_avg_step_duration_secs(stats.avg_step_duration_secs);
     }
 
@@ -49,6 +57,22 @@ impl SharedState {
 
     pub fn set_ant_count(&self, ant_count: u16) {
         self.ant_count.store(ant_count, Ordering::Relaxed);
+    }
+
+    pub fn ants_with_food(&self) -> u16 {
+        self.ants_with_food.load(Ordering::Relaxed)
+    }
+
+    pub fn set_ants_with_food(&self, ants_with_food: u16) {
+        self.ants_with_food.store(ants_with_food, Ordering::Relaxed);
+    }
+
+    pub fn total_food(&self) -> u64 {
+        self.total_food.load(Ordering::Relaxed)
+    }
+
+    pub fn set_total_food(&self, total_food: u64) {
+        self.total_food.store(total_food, Ordering::Relaxed);
     }
 
     pub fn avg_step_duration_secs(&self) -> f32 {
@@ -101,5 +125,9 @@ impl SharedState {
 
     pub fn set_drawn_pheromone_tribe(&self, tribe: u8) {
         self.drawn_pheromone_tribe.store(tribe, Ordering::Relaxed);
+    }
+
+    pub fn tribe_count(&self) -> u8 {
+        self.tribe_count.load(Ordering::Relaxed)
     }
 }

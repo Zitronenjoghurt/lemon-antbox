@@ -37,6 +37,7 @@ impl Simulation {
     pub fn clear(&mut self) {
         self.ants.clear();
         self.cells = vec![Cell::default(); self.settings.cell_count()];
+        self.pheromones.clear();
     }
 
     pub fn settings_mut(&mut self) -> &mut SimulationSettings {
@@ -55,17 +56,45 @@ impl Simulation {
         y as usize * self.settings.width as usize + x as usize
     }
 
-    pub fn spawn_ant(&mut self, x: u16, y: u16) {
-        if x >= self.settings.width || y >= self.settings.height || self.ants.len() > 65535 {
+    pub fn spawn_ant(&mut self, x: u16, y: u16, tribe: u8) {
+        if x >= self.settings.width
+            || y >= self.settings.height
+            || self.ants.len() > 65535
+            || tribe >= self.settings.tribe_count
+        {
             return;
         }
 
         let ant = Ant {
             x: x as f32,
             y: y as f32,
+            angle: fastrand::f32() * std::f32::consts::PI * 2.0,
+            tribe,
             ..Default::default()
         };
         self.ants.push(ant);
+    }
+
+    pub fn spawn_nest(&mut self, x: u16, y: u16, tribe: u8) {
+        if x >= self.settings.width
+            || y >= self.settings.height
+            || tribe >= self.settings.tribe_count
+        {
+            return;
+        }
+
+        let index = self.coords_to_index(x, y);
+        self.cells[index].tribe = tribe;
+        self.cells[index].flags.set_home(true);
+    }
+
+    pub fn spawn_food(&mut self, x: u16, y: u16, amount: u8) {
+        if x >= self.settings.width || y >= self.settings.height {
+            return;
+        }
+
+        let index = self.coords_to_index(x, y);
+        self.cells[index].food = self.cells[index].food.saturating_add(amount);
     }
 }
 
@@ -129,10 +158,17 @@ impl Simulation {
             .collect::<Vec<_>>();
 
         for (ant, ant_move) in self.ants.iter_mut().zip(ant_moves.iter()) {
-            Self::apply_move(ant, ant_move, &self.settings, &mut self.pheromones);
+            Self::apply_move(
+                ant,
+                ant_move,
+                &self.settings,
+                &mut self.pheromones,
+                &mut self.cells,
+            );
         }
 
         self.pheromones.decay(self.settings.pheromone_decay);
+        self.pheromones.diffuse(self.settings.pheromone_diffusion);
 
         self.collect_stats(start);
     }
@@ -205,6 +241,7 @@ impl Simulation {
         ant_move: &AntMove,
         settings: &SimulationSettings,
         pheromones: &mut Pheromones,
+        cells: &mut [Cell],
     ) {
         ant.angle += ant_move.turn;
 
@@ -228,6 +265,20 @@ impl Simulation {
             ant.angle = -ant.angle;
         }
 
+        let cell_idx = ant.y as usize * settings.width as usize + ant.x as usize;
+        let cell = &mut cells[cell_idx];
+
+        if !ant.has_food && cell.food > 0 {
+            ant.has_food = true;
+            cell.food -= 1;
+            ant.angle += std::f32::consts::PI;
+        }
+
+        if ant.has_food && cell.flags.has_home() && cell.tribe == ant.tribe {
+            ant.has_food = false;
+            ant.angle += std::f32::consts::PI;
+        }
+
         let deposit_pheromone = if ant.has_food {
             PheromoneType::Food
         } else {
@@ -238,6 +289,8 @@ impl Simulation {
 
     fn collect_stats(&mut self, instant_start: Instant) {
         self.stats.ant_count = self.ants.len() as u16;
+        self.stats.ants_with_food = self.ants.par_iter().filter(|a| a.has_food).count() as u16;
+        self.stats.total_food = self.cells.par_iter().map(|c| c.food as u64).sum();
 
         let duration = instant_start.elapsed().as_secs_f32();
         const SMOOTHING: f32 = 0.05;

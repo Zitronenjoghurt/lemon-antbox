@@ -3,6 +3,7 @@ use egui::{Context, Id, Ui, Widget, WidgetText};
 use lemon_antbox_core::threaded::ThreadedSimulation;
 
 mod display_settings;
+mod draw_settings;
 pub mod main;
 mod simulation_settings;
 mod simulation_stats;

@@ -13,5 +13,5 @@ fastrand = "2.3.0"
 num_enum = { workspace = true }
 rayon = "1.11.0"
 strum = { workspace = true }
-strum_macros = "0.27.2"
+strum_macros = { workspace = true }
 triple_buffer = { version = "8.1.1", optional = true }

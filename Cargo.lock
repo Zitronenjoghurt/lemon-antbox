@@ -1065,6 +1065,7 @@ dependencies = [
  "lemon-antbox-core",
  "pixels",
  "strum",
+ "strum_macros",
  "winit",
 ]
 

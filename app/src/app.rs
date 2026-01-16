@@ -1,4 +1,5 @@
 use crate::gfx::Gfx;
+use crate::ui::types::draw_mode::DrawMode;
 use crate::ui::Ui;
 use lemon_antbox_core::simulation::settings::SimulationSettings;
 use lemon_antbox_core::threaded::ThreadedSimulation;
@@ -56,7 +57,20 @@ impl App {
         if self.ui.cursor_pressed()
             && let Some(coords) = self.cursor_coords()
         {
-            self.simulation.spawn_ant(coords.0, coords.1);
+            match self.ui.draw_mode() {
+                DrawMode::Ant => {
+                    self.simulation
+                        .spawn_ant(coords.0, coords.1, self.ui.ant_tribe());
+                }
+                DrawMode::Nest => {
+                    self.simulation
+                        .spawn_nest(coords.0, coords.1, self.ui.nest_tribe());
+                }
+                DrawMode::Food => {
+                    self.simulation
+                        .spawn_food(coords.0, coords.1, self.ui.food_amount());
+                }
+            }
         }
     }
 

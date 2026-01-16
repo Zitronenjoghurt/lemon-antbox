@@ -9,6 +9,10 @@ pub struct Ant {
 
 impl Ant {
     pub fn color_rgba(&self) -> [u8; 4] {
-        [165, 102, 47, 255]
+        if self.has_food {
+            [201, 160, 56, 255]
+        } else {
+            [165, 102, 47, 255]
+        }
     }
 }

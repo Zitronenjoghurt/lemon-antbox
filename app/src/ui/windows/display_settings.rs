@@ -1,4 +1,4 @@
-use crate::ui::widgets::enum_select::EnumSelect;
+use crate::ui::widgets::option_enum_select::OptionEnumSelect;
 use crate::ui::windows::{ToggleableUiWindow, UiWindow};
 use egui::{Grid, Ui, Widget, WidgetText};
 use lemon_antbox_core::threaded::ThreadedSimulation;
@@ -37,7 +37,7 @@ impl UiWindow for DisplaySettingsWindow<'_> {
             .show(ui, |ui| {
                 ui.label("Drawn Pheromone");
                 let mut drawn_pheromone = sim.state().drawn_pheromone();
-                EnumSelect::new(&mut drawn_pheromone, "Drawn Pheromone").ui(ui);
+                OptionEnumSelect::new(&mut drawn_pheromone, "Drawn Pheromone").ui(ui);
                 sim.state().set_drawn_pheromone(drawn_pheromone);
                 ui.end_row();
             });

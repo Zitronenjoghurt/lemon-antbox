@@ -54,7 +54,11 @@ impl ThreadedContext {
         match command {
             SimulationCommand::Clear => self.simulation.clear(),
             SimulationCommand::Shutdown => do_continue = false,
-            SimulationCommand::SpawnAnt((x, y)) => self.simulation.spawn_ant(x, y),
+            SimulationCommand::SpawnAnt { x, y, tribe } => self.simulation.spawn_ant(x, y, tribe),
+            SimulationCommand::SpawnNest { x, y, tribe } => self.simulation.spawn_nest(x, y, tribe),
+            SimulationCommand::SpawnFood { x, y, amount } => {
+                self.simulation.spawn_food(x, y, amount)
+            }
         }
         do_continue
     }

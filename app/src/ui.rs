@@ -1,3 +1,4 @@
+use crate::ui::types::draw_mode::DrawMode;
 use crate::ui::windows::main::{MainWindow, MainWindowState};
 use crate::ui::windows::UiWindow;
 use lemon_antbox_core::threaded::ThreadedSimulation;
@@ -5,6 +6,7 @@ use winit::dpi::PhysicalPosition;
 use winit::event::{ElementState, KeyEvent, MouseButton};
 use winit::keyboard::{KeyCode, PhysicalKey};
 
+pub mod types;
 mod widgets;
 mod windows;
 
@@ -56,5 +58,24 @@ impl Ui {
 
     pub fn cursor_pressed(&self) -> bool {
         self.cursor_pressed
+    }
+}
+
+// Window state helpers
+impl Ui {
+    pub fn draw_mode(&self) -> DrawMode {
+        self.main_window.draw_settings.draw_mode
+    }
+
+    pub fn ant_tribe(&self) -> u8 {
+        self.main_window.draw_settings.ant_tribe
+    }
+
+    pub fn nest_tribe(&self) -> u8 {
+        self.main_window.draw_settings.nest_tribe
+    }
+
+    pub fn food_amount(&self) -> u8 {
+        self.main_window.draw_settings.food_amount
     }
 }

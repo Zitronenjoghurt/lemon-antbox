@@ -37,6 +37,12 @@ impl Pheromones {
         }
     }
 
+    pub fn clear(&mut self) {
+        self.layers
+            .par_iter_mut()
+            .for_each(|layer| layer.iter_mut().for_each(|value| *value = 0.0));
+    }
+
     fn layer_index(&self, tribe: u8, pheromone: PheromoneType) -> usize {
         (tribe as usize * PHEROMONE_COUNT) + pheromone as usize
     }
@@ -72,6 +78,27 @@ impl Pheromones {
                 }
             });
         })
+    }
+
+    pub fn diffuse(&mut self, diffusion_rate: f32) {
+        let width = self.width as usize;
+        let height = self.height as usize;
+
+        self.layers.par_iter_mut().for_each(|layer| {
+            let old = layer.clone();
+
+            for y in 1..(height - 1) {
+                for x in 1..(width - 1) {
+                    let idx = y * width + x;
+
+                    let neighbors =
+                        old[idx - 1] + old[idx + 1] + old[idx - width] + old[idx + width];
+                    let avg = neighbors * 0.25;
+
+                    layer[idx] = old[idx] * (1.0 - diffusion_rate) + avg * diffusion_rate;
+                }
+            }
+        });
     }
 
     pub fn tribe_count(&self) -> u8 {
