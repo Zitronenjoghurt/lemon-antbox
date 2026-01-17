@@ -1,6 +1,7 @@
 use crate::ui::types::draw_mode::DrawMode;
 use crate::ui::windows::main::{MainWindow, MainWindowState};
 use crate::ui::windows::UiWindow;
+use lemon_antbox_core::threaded::event::InspectedCell;
 use lemon_antbox_core::threaded::ThreadedSimulation;
 use winit::dpi::PhysicalPosition;
 use winit::event::{ElementState, KeyEvent, MouseButton};
@@ -13,13 +14,13 @@ mod windows;
 #[derive(Default)]
 pub struct Ui {
     cursor_pos: (f32, f32),
-    cursor_pressed: bool,
+    cursor_pressed: Option<MouseButton>,
     main_window: MainWindowState,
 }
 
 impl Ui {
-    pub fn draw(&mut self, ctx: &egui::Context, sim: &ThreadedSimulation) {
-        MainWindow::new(&mut self.main_window).show(ctx, sim);
+    pub fn draw(&mut self, ctx: &egui::Context, sim: &mut ThreadedSimulation) {
+        MainWindow::new(&mut self.main_window, sim).show(ctx);
     }
 
     pub fn on_cursor_moved(&mut self, pos: PhysicalPosition<f64>) {
@@ -27,8 +28,10 @@ impl Ui {
     }
 
     pub fn on_mouse_input(&mut self, state: ElementState, button: MouseButton) {
-        if button == MouseButton::Left {
-            self.cursor_pressed = state == ElementState::Pressed;
+        if state == ElementState::Pressed {
+            self.cursor_pressed = Some(button);
+        } else {
+            self.cursor_pressed = None;
         }
     }
 
@@ -56,8 +59,18 @@ impl Ui {
         self.cursor_pos
     }
 
-    pub fn cursor_pressed(&self) -> bool {
-        self.cursor_pressed
+    pub fn consume_cursor_pressed(&mut self) -> Option<MouseButton> {
+        // The left mouse button will allow for being kept pressed
+        if let Some(MouseButton::Left) = self.cursor_pressed {
+            return Some(MouseButton::Left);
+        }
+        self.cursor_pressed.take()
+    }
+
+    pub fn set_inspected_cell(&mut self, inspected_cell: InspectedCell) {
+        self.main_window
+            .cell_inspector_window_state
+            .inspect(inspected_cell);
     }
 }
 

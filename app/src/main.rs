@@ -37,7 +37,7 @@ fn main() {
 
     event_loop
         .run(move |event, target| {
-            app.handle_event(event, target);
+            app.handle_winit_event(event, target);
         })
         .unwrap();
 }

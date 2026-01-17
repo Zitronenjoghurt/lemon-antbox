@@ -4,11 +4,12 @@ use lemon_antbox_core::threaded::ThreadedSimulation;
 
 pub struct SimulationSettingsWindow<'a> {
     is_open: &'a mut bool,
+    sim: &'a ThreadedSimulation,
 }
 
 impl<'a> SimulationSettingsWindow<'a> {
-    pub fn new(is_open: &'a mut bool) -> Self {
-        Self { is_open }
+    pub fn new(is_open: &'a mut bool, sim: &'a ThreadedSimulation) -> Self {
+        Self { is_open, sim }
     }
 }
 
@@ -29,14 +30,14 @@ impl UiWindow for SimulationSettingsWindow<'_> {
         *self.is_open = open;
     }
 
-    fn render_content(&mut self, ui: &mut Ui, sim: &ThreadedSimulation) {
+    fn render_content(&mut self, ui: &mut Ui) {
         ui.horizontal(|ui| {
-            let mut paused = sim.state().is_paused();
+            let mut paused = self.sim.state().is_paused();
             egui::Checkbox::new(&mut paused, "Paused").ui(ui);
-            sim.state().set_paused(paused);
+            self.sim.state().set_paused(paused);
 
             if ui.button("Clear").clicked() {
-                sim.clear();
+                self.sim.clear();
             }
         });
     }

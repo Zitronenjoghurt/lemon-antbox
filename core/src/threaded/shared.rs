@@ -15,6 +15,7 @@ pub struct SharedState {
     pheromone_decay: AtomicU32,
     drawn_pheromone: AtomicU8,
     drawn_pheromone_tribe: AtomicU8,
+    inspected_ant: AtomicU32,
     tribe_count: AtomicU8,
 }
 
@@ -32,16 +33,18 @@ impl SharedState {
                 settings.drawn_pheromone.map(|p| p as u8).unwrap_or(255),
             ),
             drawn_pheromone_tribe: AtomicU8::new(settings.drawn_pheromone_tribe),
+            inspected_ant: AtomicU32::new(0b1_00000000_00000000),
             tribe_count: AtomicU8::new(settings.tribe_count),
         }
     }
 
     pub fn sync_settings(&self, settings: &mut SimulationSettings) {
-        settings.paused = self.is_paused.load(Ordering::Relaxed);
-        settings.steps_per_second = self.steps_per_second.load(Ordering::Relaxed);
-        settings.pheromone_decay = f32::from_bits(self.pheromone_decay.load(Ordering::Relaxed));
-        settings.drawn_pheromone = self.drawn_pheromone.load(Ordering::Relaxed).try_into().ok();
-        settings.drawn_pheromone_tribe = self.drawn_pheromone_tribe.load(Ordering::Relaxed);
+        settings.paused = self.is_paused();
+        settings.steps_per_second = self.steps_per_second();
+        settings.pheromone_decay = self.pheromone_decay();
+        settings.drawn_pheromone = self.drawn_pheromone();
+        settings.drawn_pheromone_tribe = self.drawn_pheromone_tribe();
+        self.set_inspected_ant(settings.inspected_ant);
     }
 
     pub fn sync_stats(&self, stats: &SimulationStats) {
@@ -125,6 +128,22 @@ impl SharedState {
 
     pub fn set_drawn_pheromone_tribe(&self, tribe: u8) {
         self.drawn_pheromone_tribe.store(tribe, Ordering::Relaxed);
+    }
+
+    pub fn inspected_ant(&self) -> Option<u16> {
+        let index = self.inspected_ant.load(Ordering::Relaxed);
+        if index > 65535 {
+            None
+        } else {
+            Some(index as u16)
+        }
+    }
+
+    pub fn set_inspected_ant(&self, index: Option<u16>) {
+        self.inspected_ant.store(
+            index.map(|i| i as u32).unwrap_or(0b1_00000000_00000000),
+            Ordering::Relaxed,
+        );
     }
 
     pub fn tribe_count(&self) -> u8 {

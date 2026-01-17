@@ -15,11 +15,12 @@ pub struct DrawSettingsWindowState {
 
 pub struct DrawSettingsWindow<'a> {
     state: &'a mut DrawSettingsWindowState,
+    sim: &'a ThreadedSimulation,
 }
 
 impl<'a> DrawSettingsWindow<'a> {
-    pub fn new(state: &'a mut DrawSettingsWindowState) -> Self {
-        Self { state }
+    pub fn new(state: &'a mut DrawSettingsWindowState, sim: &'a ThreadedSimulation) -> Self {
+        Self { state, sim }
     }
 }
 
@@ -40,13 +41,13 @@ impl UiWindow for DrawSettingsWindow<'_> {
         self.state.is_open = open;
     }
 
-    fn render_content(&mut self, ui: &mut Ui, sim: &ThreadedSimulation) {
+    fn render_content(&mut self, ui: &mut Ui) {
         ui.vertical(|ui| {
             EnumSelect::new(&mut self.state.draw_mode, "draw_settings_draw_mode")
                 .label("Draw Mode")
                 .ui(ui);
 
-            let max_tribe = sim.state().tribe_count().saturating_sub(1);
+            let max_tribe = self.sim.state().tribe_count().saturating_sub(1);
             match self.state.draw_mode {
                 DrawMode::Ant => {
                     ui.horizontal(|ui| {

@@ -2,9 +2,10 @@ use crate::gfx::Gfx;
 use crate::ui::types::draw_mode::DrawMode;
 use crate::ui::Ui;
 use lemon_antbox_core::simulation::settings::SimulationSettings;
+use lemon_antbox_core::threaded::event::SimulationEvent;
 use lemon_antbox_core::threaded::ThreadedSimulation;
 use std::sync::Arc;
-use winit::event::{Event, WindowEvent};
+use winit::event::{Event, MouseButton, WindowEvent};
 use winit::event_loop::EventLoopWindowTarget;
 use winit::window::Window;
 
@@ -23,7 +24,11 @@ impl App {
         }
     }
 
-    pub fn handle_event(&mut self, event: Event<()>, window_target: &EventLoopWindowTarget<()>) {
+    pub fn handle_winit_event(
+        &mut self,
+        event: Event<()>,
+        window_target: &EventLoopWindowTarget<()>,
+    ) {
         match event {
             Event::WindowEvent { event, .. } => {
                 let response = self.gfx.on_egui_window_event(&event);
@@ -54,29 +59,47 @@ impl App {
     }
 
     fn update(&mut self) {
-        if self.ui.cursor_pressed()
+        if let Some(button) = self.ui.consume_cursor_pressed()
             && let Some(coords) = self.cursor_coords()
         {
-            match self.ui.draw_mode() {
-                DrawMode::Ant => {
-                    self.simulation
-                        .spawn_ant(coords.0, coords.1, self.ui.ant_tribe());
+            match button {
+                MouseButton::Left => match self.ui.draw_mode() {
+                    DrawMode::Ant => {
+                        self.simulation
+                            .spawn_ant(coords.0, coords.1, self.ui.ant_tribe());
+                    }
+                    DrawMode::Nest => {
+                        self.simulation
+                            .spawn_nest(coords.0, coords.1, self.ui.nest_tribe());
+                    }
+                    DrawMode::Food => {
+                        self.simulation
+                            .spawn_food(coords.0, coords.1, self.ui.food_amount());
+                    }
+                },
+                MouseButton::Right => {
+                    self.simulation.inspect_cell(coords.0, coords.1);
                 }
-                DrawMode::Nest => {
-                    self.simulation
-                        .spawn_nest(coords.0, coords.1, self.ui.nest_tribe());
-                }
-                DrawMode::Food => {
-                    self.simulation
-                        .spawn_food(coords.0, coords.1, self.ui.food_amount());
-                }
+                _ => {}
+            }
+        }
+
+        if let Some(event) = self.simulation.next_event() {
+            self.handle_sim_event(event);
+        }
+    }
+
+    fn handle_sim_event(&mut self, event: SimulationEvent) {
+        match event {
+            SimulationEvent::InspectedCell(inspected_cell) => {
+                self.ui.set_inspected_cell(*inspected_cell)
             }
         }
     }
 
     fn render(&mut self) {
         self.gfx.prepare(|ctx| {
-            self.ui.draw(ctx, &self.simulation);
+            self.ui.draw(ctx, &mut self.simulation);
         });
 
         self.simulation.draw(self.gfx.pixels_frame());

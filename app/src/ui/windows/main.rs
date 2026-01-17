@@ -1,3 +1,4 @@
+use crate::ui::windows::cell_inspector::{CellInspectorWindow, CellInspectorWindowState};
 use crate::ui::windows::display_settings::DisplaySettingsWindow;
 use crate::ui::windows::draw_settings::{DrawSettingsWindow, DrawSettingsWindowState};
 use crate::ui::windows::simulation_settings::SimulationSettingsWindow;
@@ -8,6 +9,7 @@ use lemon_antbox_core::threaded::ThreadedSimulation;
 
 pub struct MainWindowState {
     pub is_open: bool,
+    pub cell_inspector_window_state: CellInspectorWindowState,
     pub draw_settings: DrawSettingsWindowState,
     display_settings_open: bool,
     simulation_settings_open: bool,
@@ -18,6 +20,7 @@ impl Default for MainWindowState {
     fn default() -> Self {
         Self {
             is_open: true,
+            cell_inspector_window_state: CellInspectorWindowState::default(),
             draw_settings: DrawSettingsWindowState::default(),
             display_settings_open: false,
             simulation_settings_open: false,
@@ -28,11 +31,12 @@ impl Default for MainWindowState {
 
 pub struct MainWindow<'a> {
     state: &'a mut MainWindowState,
+    sim: &'a mut ThreadedSimulation,
 }
 
 impl<'a> MainWindow<'a> {
-    pub fn new(state: &'a mut MainWindowState) -> Self {
-        Self { state }
+    pub fn new(state: &'a mut MainWindowState, sim: &'a mut ThreadedSimulation) -> Self {
+        Self { state, sim }
     }
 }
 
@@ -53,20 +57,23 @@ impl UiWindow for MainWindow<'_> {
         self.state.is_open = open;
     }
 
-    fn render_content(&mut self, ui: &mut Ui, sim: &ThreadedSimulation) {
+    fn render_content(&mut self, ui: &mut Ui) {
         ui.horizontal(|ui| {
-            DrawSettingsWindow::new(&mut self.state.draw_settings)
+            DrawSettingsWindow::new(&mut self.state.draw_settings, self.sim)
                 .toggle_button(ui)
-                .show(ui.ctx(), sim);
-            SimulationSettingsWindow::new(&mut self.state.simulation_settings_open)
+                .show(ui.ctx());
+            SimulationSettingsWindow::new(&mut self.state.simulation_settings_open, self.sim)
                 .toggle_button(ui)
-                .show(ui.ctx(), sim);
-            DisplaySettingsWindow::new(&mut self.state.display_settings_open)
+                .show(ui.ctx());
+            DisplaySettingsWindow::new(&mut self.state.display_settings_open, self.sim)
                 .toggle_button(ui)
-                .show(ui.ctx(), sim);
-            SimulationStatsWindow::new(&mut self.state.simulation_stats_open)
+                .show(ui.ctx());
+            CellInspectorWindow::new(&mut self.state.cell_inspector_window_state, &mut self.sim)
                 .toggle_button(ui)
-                .show(ui.ctx(), sim);
+                .show(ui.ctx());
+            SimulationStatsWindow::new(&mut self.state.simulation_stats_open, self.sim)
+                .toggle_button(ui)
+                .show(ui.ctx());
         });
     }
 }

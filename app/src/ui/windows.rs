@@ -1,7 +1,7 @@
 use crate::ui::widgets::toggle_button::ToggleButton;
 use egui::{Context, Id, Ui, Widget, WidgetText};
-use lemon_antbox_core::threaded::ThreadedSimulation;
 
+mod cell_inspector;
 mod display_settings;
 mod draw_settings;
 pub mod main;
@@ -13,7 +13,7 @@ pub trait UiWindow: Sized {
     fn title() -> impl Into<WidgetText>;
     fn is_open(&self) -> bool;
     fn set_open(&mut self, open: bool);
-    fn render_content(&mut self, ui: &mut Ui, sim: &ThreadedSimulation);
+    fn render_content(&mut self, ui: &mut Ui);
 
     fn resizable(&self) -> bool {
         true
@@ -27,7 +27,7 @@ pub trait UiWindow: Sized {
         false
     }
 
-    fn show(mut self, ctx: &Context, sim: &ThreadedSimulation) {
+    fn show(mut self, ctx: &Context) {
         let mut is_open = self.is_open();
         egui::Window::new(Self::title())
             .id(Self::id())
@@ -35,7 +35,7 @@ pub trait UiWindow: Sized {
             .resizable(self.resizable())
             .movable(self.movable())
             .collapsible(self.collapsible())
-            .show(ctx, |ui| self.render_content(ui, sim));
+            .show(ctx, |ui| self.render_content(ui));
         self.set_open(is_open && self.is_open());
     }
 }

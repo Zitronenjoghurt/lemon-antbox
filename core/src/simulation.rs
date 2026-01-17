@@ -1,4 +1,4 @@
-use crate::simulation::ant::Ant;
+use crate::simulation::ant::{Ant, AntAction, AntFeedback, AntSenses};
 use crate::simulation::cell::Cell;
 use crate::simulation::pheromones::{PheromoneType, Pheromones};
 use crate::simulation::settings::SimulationSettings;
@@ -8,8 +8,8 @@ use rayon::iter::ParallelIterator;
 use rayon::prelude::IntoParallelRefIterator;
 use std::time::Instant;
 
-mod ant;
-mod cell;
+pub mod ant;
+pub mod cell;
 pub mod pheromones;
 pub mod settings;
 pub mod stats;
@@ -40,6 +40,10 @@ impl Simulation {
         self.pheromones.clear();
     }
 
+    pub fn settings(&self) -> &SimulationSettings {
+        &self.settings
+    }
+
     pub fn settings_mut(&mut self) -> &mut SimulationSettings {
         &mut self.settings
     }
@@ -54,6 +58,12 @@ impl Simulation {
 
     fn coords_to_index(&self, x: u16, y: u16) -> usize {
         y as usize * self.settings.width as usize + x as usize
+    }
+
+    fn index_to_coords(&self, index: usize) -> (u16, u16) {
+        let x = (index % self.settings.width as usize) as u16;
+        let y = (index / self.settings.width as usize) as u16;
+        (x, y)
     }
 
     pub fn spawn_ant(&mut self, x: u16, y: u16, tribe: u8) {
@@ -96,6 +106,31 @@ impl Simulation {
         let index = self.coords_to_index(x, y);
         self.cells[index].food = self.cells[index].food.saturating_add(amount);
     }
+
+    pub fn get_cell(&self, x: u16, y: u16) -> Option<Cell> {
+        let index = self.coords_to_index(x, y);
+        self.cells.get(index).copied()
+    }
+
+    pub fn get_ant(&self, index: usize) -> Option<Ant> {
+        self.ants.get(index).cloned()
+    }
+
+    pub fn get_ant_index_at_coords(&self, x: u16, y: u16, radius: f32) -> Option<usize> {
+        self.ants
+            .iter()
+            .enumerate()
+            .filter_map(|(i, a)| {
+                let dist_sq = (a.x - x as f32).powi(2) + (a.y - y as f32).powi(2);
+                if dist_sq <= radius * radius {
+                    Some((i, dist_sq))
+                } else {
+                    None
+                }
+            })
+            .min_by(|a, b| a.1.partial_cmp(&b.1).unwrap())
+            .map(|(i, _)| i)
+    }
 }
 
 // Draw
@@ -107,9 +142,10 @@ impl Simulation {
     }
 
     fn draw_ants(&self, frame: &mut [u8]) {
-        for ant in &self.ants {
+        for (i, ant) in self.ants.iter().enumerate() {
             let index = self.coords_to_index(ant.x as u16, ant.y as u16) * 4;
-            frame[index..index + 4].copy_from_slice(&ant.color_rgba());
+            let inspected = self.settings.inspected_ant == Some(i as u16);
+            frame[index..index + 4].copy_from_slice(&ant.color_rgba(inspected));
         }
     }
 
@@ -151,20 +187,36 @@ impl Simulation {
             return;
         }
 
-        let ant_moves = self
+        let ant_actions = self
             .ants
             .par_iter()
-            .map(|ant| self.compute_ant_move(ant))
+            .map(|ant| ant.sense(self.sense_for_ant(ant), &self.settings.ant))
             .collect::<Vec<_>>();
 
-        for (ant, ant_move) in self.ants.iter_mut().zip(ant_moves.iter()) {
-            Self::apply_move(
+        for (ant, action) in self.ants.iter_mut().zip(ant_actions.into_iter()) {
+            Self::apply_action(
                 ant,
-                ant_move,
+                action,
                 &self.settings,
                 &mut self.pheromones,
                 &mut self.cells,
             );
+        }
+
+        for x in 0..self.settings.width {
+            for y in 0..self.settings.height {
+                let cell_index = self.coords_to_index(x, y);
+                let cell = &self.cells[cell_index];
+                if cell.flags.has_home() {
+                    self.pheromones.put(
+                        cell.tribe,
+                        PheromoneType::Home,
+                        x,
+                        y,
+                        self.settings.nest_pheromone_strength,
+                    );
+                }
+            }
         }
 
         self.pheromones.decay(self.settings.pheromone_decay);
@@ -173,44 +225,50 @@ impl Simulation {
         self.collect_stats(start);
     }
 
-    fn compute_ant_move(&self, ant: &Ant) -> AntMove {
-        let target_pheromone = if ant.has_food {
-            PheromoneType::Home
+    pub fn sense_for_ant(&self, ant: &Ant) -> AntSenses {
+        let pheromone = ant.desired_pheromone();
+
+        let left = if let Some(pheromone) = pheromone {
+            self.sample_pheromone(
+                ant,
+                ant.angle - self.settings.ant.sensor_angle,
+                self.settings.ant.sensor_distance,
+                pheromone,
+            )
         } else {
-            PheromoneType::Food
-        };
-
-        let left = self.sample_pheromone(
-            ant,
-            ant.angle - self.settings.ant_sensor_angle,
-            self.settings.ant_sensor_distance,
-            target_pheromone,
-        );
-        let forward = self.sample_pheromone(
-            ant,
-            ant.angle,
-            self.settings.ant_sensor_distance,
-            target_pheromone,
-        );
-        let right = self.sample_pheromone(
-            ant,
-            ant.angle + self.settings.ant_sensor_angle,
-            self.settings.ant_sensor_distance,
-            target_pheromone,
-        );
-
-        let turn = if forward >= left && forward >= right {
             0.0
-        } else if left > right {
-            -self.settings.ant_turn_angle
-        } else {
-            self.settings.ant_turn_angle
         };
 
-        let wobble = (fastrand::f32() - 0.5) * self.settings.ant_wobble_strength;
+        let forward = if let Some(pheromone) = pheromone {
+            self.sample_pheromone(ant, ant.angle, self.settings.ant.sensor_distance, pheromone)
+        } else {
+            0.0
+        };
 
-        AntMove {
-            turn: turn + wobble,
+        let right = if let Some(pheromone) = pheromone {
+            self.sample_pheromone(
+                ant,
+                ant.angle + self.settings.ant.sensor_angle,
+                self.settings.ant.sensor_distance,
+                pheromone,
+            )
+        } else {
+            0.0
+        };
+
+        let cell_index = self.coords_to_index(ant.x as u16, ant.y as u16);
+        let (food, at_home) = if let Some(cell) = self.cells.get(cell_index) {
+            (cell.food, cell.flags.has_home() && cell.tribe == ant.tribe)
+        } else {
+            (0, false)
+        };
+
+        AntSenses {
+            left,
+            forward,
+            right,
+            food,
+            at_home,
         }
     }
 
@@ -236,17 +294,35 @@ impl Simulation {
             .get(ant.tribe, pheromone_type, sx as u16, sy as u16)
     }
 
-    fn apply_move(
+    fn apply_action(
         ant: &mut Ant,
-        ant_move: &AntMove,
+        action: AntAction,
         settings: &SimulationSettings,
         pheromones: &mut Pheromones,
         cells: &mut [Cell],
     ) {
-        ant.angle += ant_move.turn;
+        let cell_idx = ant.y as usize * settings.width as usize + ant.x as usize;
+        let cell = &mut cells[cell_idx];
 
-        ant.x += ant.angle.cos() * settings.ant_speed;
-        ant.y += ant.angle.sin() * settings.ant_speed;
+        let picked_up_food = if action.pickup_food && cell.food > 0 {
+            cell.food -= 1;
+            true
+        } else {
+            false
+        };
+        let deposited_food = action.deposit_food;
+
+        if let Some(pheromone) = action.deposit_pheromone {
+            pheromones.deposit(ant, pheromone, action.deposit_pheromone_strength)
+        }
+
+        let feedback = AntFeedback {
+            turn: action.turn,
+            picked_up_food,
+            deposited_food,
+        };
+
+        ant.update(&feedback, &settings.ant);
 
         // Bounce off walls
         if ant.x < 0.0 {
@@ -264,27 +340,6 @@ impl Simulation {
             ant.y = 2.0 * settings.height as f32 - ant.y - 1.0;
             ant.angle = -ant.angle;
         }
-
-        let cell_idx = ant.y as usize * settings.width as usize + ant.x as usize;
-        let cell = &mut cells[cell_idx];
-
-        if !ant.has_food && cell.food > 0 {
-            ant.has_food = true;
-            cell.food -= 1;
-            ant.angle += std::f32::consts::PI;
-        }
-
-        if ant.has_food && cell.flags.has_home() && cell.tribe == ant.tribe {
-            ant.has_food = false;
-            ant.angle += std::f32::consts::PI;
-        }
-
-        let deposit_pheromone = if ant.has_food {
-            PheromoneType::Food
-        } else {
-            PheromoneType::Home
-        };
-        pheromones.deposit(ant, deposit_pheromone, settings.ant_pheromone_strength);
     }
 
     fn collect_stats(&mut self, instant_start: Instant) {
@@ -297,8 +352,4 @@ impl Simulation {
         self.stats.avg_step_duration_secs =
             self.stats.avg_step_duration_secs * (1.0 - SMOOTHING) + duration * SMOOTHING;
     }
-}
-
-struct AntMove {
-    turn: f32,
 }

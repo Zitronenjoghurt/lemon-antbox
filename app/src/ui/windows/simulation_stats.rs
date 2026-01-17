@@ -4,11 +4,12 @@ use lemon_antbox_core::threaded::ThreadedSimulation;
 
 pub struct SimulationStatsWindow<'a> {
     pub is_open: &'a mut bool,
+    sim: &'a ThreadedSimulation,
 }
 
 impl<'a> SimulationStatsWindow<'a> {
-    pub fn new(is_open: &'a mut bool) -> Self {
-        Self { is_open }
+    pub fn new(is_open: &'a mut bool, sim: &'a ThreadedSimulation) -> Self {
+        Self { is_open, sim }
     }
 }
 
@@ -29,24 +30,24 @@ impl UiWindow for SimulationStatsWindow<'_> {
         *self.is_open = open;
     }
 
-    fn render_content(&mut self, ui: &mut Ui, sim: &ThreadedSimulation) {
+    fn render_content(&mut self, ui: &mut Ui) {
         Grid::new("simulation_stats_grid")
             .num_columns(2)
             .striped(true)
             .show(ui, |ui| {
                 ui.label("Ant Count");
-                ui.label(sim.state().ant_count().to_string());
+                ui.label(self.sim.state().ant_count().to_string());
                 ui.end_row();
 
                 ui.label("Ants with Food");
-                ui.label(sim.state().ants_with_food().to_string());
+                ui.label(self.sim.state().ants_with_food().to_string());
                 ui.end_row();
 
                 ui.label("Total Food");
-                ui.label(sim.state().total_food().to_string());
+                ui.label(self.sim.state().total_food().to_string());
                 ui.end_row();
 
-                let avg_step_duration_secs = sim.state().avg_step_duration_secs();
+                let avg_step_duration_secs = self.sim.state().avg_step_duration_secs();
                 ui.label("Avg. Step Duration");
                 ui.label(format!("{:.02}ms", avg_step_duration_secs * 1000.0));
                 ui.end_row();

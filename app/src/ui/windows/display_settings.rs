@@ -5,11 +5,12 @@ use lemon_antbox_core::threaded::ThreadedSimulation;
 
 pub struct DisplaySettingsWindow<'a> {
     is_open: &'a mut bool,
+    sim: &'a ThreadedSimulation,
 }
 
 impl<'a> DisplaySettingsWindow<'a> {
-    pub fn new(is_open: &'a mut bool) -> Self {
-        Self { is_open }
+    pub fn new(is_open: &'a mut bool, sim: &'a ThreadedSimulation) -> Self {
+        Self { is_open, sim }
     }
 }
 
@@ -30,15 +31,15 @@ impl UiWindow for DisplaySettingsWindow<'_> {
         *self.is_open = open;
     }
 
-    fn render_content(&mut self, ui: &mut Ui, sim: &ThreadedSimulation) {
+    fn render_content(&mut self, ui: &mut Ui) {
         Grid::new("display_settings_grid")
             .num_columns(2)
             .striped(true)
             .show(ui, |ui| {
                 ui.label("Drawn Pheromone");
-                let mut drawn_pheromone = sim.state().drawn_pheromone();
+                let mut drawn_pheromone = self.sim.state().drawn_pheromone();
                 OptionEnumSelect::new(&mut drawn_pheromone, "Drawn Pheromone").ui(ui);
-                sim.state().set_drawn_pheromone(drawn_pheromone);
+                self.sim.state().set_drawn_pheromone(drawn_pheromone);
                 ui.end_row();
             });
     }
