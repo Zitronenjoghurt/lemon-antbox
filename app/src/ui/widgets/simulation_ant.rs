@@ -62,8 +62,19 @@ impl Widget for SimulationAnt<'_> {
                 ));
                 ui.end_row();
 
+                ui.label("Pheromone reservoir");
+                ui.label(format!("{:.2}", self.ant.pheromone_reservoir));
+                ui.end_row();
+
                 ui.label("Sensed food");
                 ui.label(self.senses.food.to_string());
+                ui.end_row();
+
+                ui.label("Dead reckoning");
+                ui.label(format!(
+                    "({:.2}, {:.2})",
+                    self.ant.dead_reckoning_x, self.ant.dead_reckoning_y
+                ));
                 ui.end_row();
 
                 ui.label("Spiral radius");

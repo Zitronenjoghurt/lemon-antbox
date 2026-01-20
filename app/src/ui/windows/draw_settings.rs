@@ -8,6 +8,7 @@ use lemon_antbox_core::threaded::ThreadedSimulation;
 pub struct DrawSettingsWindowState {
     pub is_open: bool,
     pub draw_mode: DrawMode,
+    pub radius: u8,
     pub ant_tribe: u8,
     pub nest_tribe: u8,
     pub food_amount: u8,
@@ -46,6 +47,11 @@ impl UiWindow for DrawSettingsWindow<'_> {
             EnumSelect::new(&mut self.state.draw_mode, "draw_settings_draw_mode")
                 .label("Draw Mode")
                 .ui(ui);
+
+            ui.horizontal(|ui| {
+                ui.label("Radius");
+                ui.add(Slider::new(&mut self.state.radius, 1..=10));
+            });
 
             let max_tribe = self.sim.state().tribe_count().saturating_sub(1);
             match self.state.draw_mode {

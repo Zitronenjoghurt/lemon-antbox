@@ -66,7 +66,37 @@ impl Simulation {
         (x, y)
     }
 
-    pub fn spawn_ant(&mut self, x: u16, y: u16, tribe: u8) {
+    fn iter_coords_in_radius(
+        &self,
+        cx: u16,
+        cy: u16,
+        radius: u8,
+    ) -> impl Iterator<Item = (u16, u16)> + '_ {
+        let r = radius as i32;
+        let cx = cx as i32;
+        let cy = cy as i32;
+        let w = self.settings.width as i32;
+        let h = self.settings.height as i32;
+
+        (-r..=r).flat_map(move |dy| {
+            (-r..=r).filter_map(move |dx| {
+                if dx * dx + dy * dy > r * r {
+                    return None;
+                }
+
+                let x = cx + dx;
+                let y = cy + dy;
+
+                if x < 0 || y < 0 || x >= w || y >= h {
+                    return None;
+                }
+
+                Some((x as u16, y as u16))
+            })
+        })
+    }
+
+    pub fn spawn_ant(&mut self, x: u16, y: u16, tribe: u8, radius: u8) {
         if x >= self.settings.width
             || y >= self.settings.height
             || self.ants.len() > 65535
@@ -75,17 +105,20 @@ impl Simulation {
             return;
         }
 
-        let ant = Ant {
-            x: x as f32,
-            y: y as f32,
-            angle: fastrand::f32() * std::f32::consts::PI * 2.0,
-            tribe,
-            ..Default::default()
-        };
-        self.ants.push(ant);
+        let coords = self.iter_coords_in_radius(x, y, radius).collect::<Vec<_>>();
+        for (x, y) in coords {
+            let ant = Ant {
+                x: x as f32,
+                y: y as f32,
+                angle: fastrand::f32() * std::f32::consts::PI * 2.0,
+                tribe,
+                ..Default::default()
+            };
+            self.ants.push(ant);
+        }
     }
 
-    pub fn spawn_nest(&mut self, x: u16, y: u16, tribe: u8) {
+    pub fn spawn_nest(&mut self, x: u16, y: u16, tribe: u8, radius: u8) {
         if x >= self.settings.width
             || y >= self.settings.height
             || tribe >= self.settings.tribe_count
@@ -93,18 +126,24 @@ impl Simulation {
             return;
         }
 
-        let index = self.coords_to_index(x, y);
-        self.cells[index].tribe = tribe;
-        self.cells[index].flags.set_home(true);
+        let coords = self.iter_coords_in_radius(x, y, radius).collect::<Vec<_>>();
+        for (x, y) in coords {
+            let index = self.coords_to_index(x, y);
+            self.cells[index].tribe = tribe;
+            self.cells[index].flags.set_home(true);
+        }
     }
 
-    pub fn spawn_food(&mut self, x: u16, y: u16, amount: u8) {
+    pub fn spawn_food(&mut self, x: u16, y: u16, amount: u8, radius: u8) {
         if x >= self.settings.width || y >= self.settings.height {
             return;
         }
 
-        let index = self.coords_to_index(x, y);
-        self.cells[index].food = self.cells[index].food.saturating_add(amount);
+        let coords = self.iter_coords_in_radius(x, y, radius).collect::<Vec<_>>();
+        for (x, y) in coords {
+            let index = self.coords_to_index(x, y);
+            self.cells[index].food = self.cells[index].food.saturating_add(amount);
+        }
     }
 
     pub fn get_cell(&self, x: u16, y: u16) -> Option<Cell> {
@@ -180,10 +219,10 @@ impl Simulation {
 
 // Step
 impl Simulation {
-    pub fn step(&mut self) {
+    pub fn step(&mut self, force: bool) {
         let start = Instant::now();
 
-        if self.settings.paused {
+        if !force && self.settings.paused {
             return;
         }
 

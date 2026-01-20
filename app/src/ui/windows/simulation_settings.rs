@@ -32,6 +32,10 @@ impl UiWindow for SimulationSettingsWindow<'_> {
 
     fn render_content(&mut self, ui: &mut Ui) {
         ui.horizontal(|ui| {
+            if ui.button("Force Step").clicked() {
+                self.sim.force_step();
+            }
+
             let mut paused = self.sim.state().is_paused();
             egui::Checkbox::new(&mut paused, "Paused").ui(ui);
             self.sim.state().set_paused(paused);

@@ -59,9 +59,11 @@ pub struct Ant {
     pub angle: f32,
     pub has_food: bool,
     pub mode: AntMode,
-    // ToDo: implement reservoir, dead reckoning and spiral search
+    // ToDo: make dead reckoning functional, figure out when to trust it over pheromones, make it inaccurate
+    pub dead_reckoning_x: f32,
+    pub dead_reckoning_y: f32,
     pub pheromone_reservoir: f32,
-    pub home: Option<(u16, u16)>,
+    // ToDo: implement spiral search
     pub spiral_radius: f32,
 }
 
@@ -87,15 +89,19 @@ impl Ant {
         } else if (self.mode == AntMode::Exploring && senses.food > 0)
             || (self.mode == AntMode::FoodToHome && senses.at_home)
         {
-            self.angle + std::f32::consts::PI
+            std::f32::consts::PI
         } else {
             senses.desired_turn(settings.turn_angle)
         } + (fastrand::f32() - 0.5) * settings.wobble_strength;
 
-        let pheromone_strength = if self.mode == AntMode::FoodToHome {
-            settings.pheromone_strength.max(senses.food as f32)
+        let pheromone_strength = if self.pheromone_reservoir > 0.0 {
+            if self.mode == AntMode::FoodToHome {
+                settings.pheromone_strength.max(senses.food as f32) * self.pheromone_reservoir
+            } else {
+                settings.pheromone_strength * self.pheromone_reservoir
+            }
         } else {
-            settings.pheromone_strength
+            0.0
         };
 
         AntAction {
@@ -117,7 +123,7 @@ impl Ant {
 
     pub fn excreted_pheromone(&self) -> Option<PheromoneType> {
         match self.mode {
-            AntMode::Exploring => None,
+            AntMode::Exploring => Some(PheromoneType::Home),
             AntMode::FoodToHome => Some(PheromoneType::Food),
             AntMode::SearchingHome => None,
         }
@@ -135,16 +141,30 @@ impl Ant {
 // Apply action
 impl Ant {
     pub fn update(&mut self, feedback: &AntFeedback, settings: &AntSettings) {
+        let dx = self.angle.cos() * settings.speed;
+        let dy = self.angle.sin() * settings.speed;
+
         self.angle += feedback.turn;
-        self.x += self.angle.cos() * settings.speed;
-        self.y += self.angle.sin() * settings.speed;
+        self.x += dx;
+        self.y += dy;
+        self.pheromone_reservoir -= settings.pheromone_usage_per_step;
 
         if feedback.picked_up_food {
             self.has_food = true;
             self.mode = AntMode::FoodToHome;
+            self.pheromone_reservoir = 1.0;
         } else if feedback.deposited_food {
             self.has_food = false;
             self.mode = AntMode::Exploring;
+            self.pheromone_reservoir = 1.0;
+        }
+
+        if feedback.deposited_food {
+            self.dead_reckoning_x = 0.0;
+            self.dead_reckoning_y = 0.0;
+        } else {
+            self.dead_reckoning_x += dx;
+            self.dead_reckoning_y += dy;
         }
     }
 }

@@ -65,16 +65,28 @@ impl App {
             match button {
                 MouseButton::Left => match self.ui.draw_mode() {
                     DrawMode::Ant => {
-                        self.simulation
-                            .spawn_ant(coords.0, coords.1, self.ui.ant_tribe());
+                        self.simulation.spawn_ant(
+                            coords.0,
+                            coords.1,
+                            self.ui.ant_tribe(),
+                            self.ui.draw_radius(),
+                        );
                     }
                     DrawMode::Nest => {
-                        self.simulation
-                            .spawn_nest(coords.0, coords.1, self.ui.nest_tribe());
+                        self.simulation.spawn_nest(
+                            coords.0,
+                            coords.1,
+                            self.ui.nest_tribe(),
+                            self.ui.draw_radius(),
+                        );
                     }
                     DrawMode::Food => {
-                        self.simulation
-                            .spawn_food(coords.0, coords.1, self.ui.food_amount());
+                        self.simulation.spawn_food(
+                            coords.0,
+                            coords.1,
+                            self.ui.food_amount(),
+                            self.ui.draw_radius(),
+                        );
                     }
                 },
                 MouseButton::Right => {

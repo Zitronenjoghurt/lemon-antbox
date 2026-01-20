@@ -89,20 +89,39 @@ impl ThreadedSimulation {
         self.send_command(SimulationCommand::Clear);
     }
 
-    pub fn spawn_ant(&self, x: u16, y: u16, tribe: u8) {
-        self.send_command(SimulationCommand::SpawnAnt { x, y, tribe });
+    pub fn spawn_ant(&self, x: u16, y: u16, tribe: u8, radius: u8) {
+        self.send_command(SimulationCommand::SpawnAnt {
+            x,
+            y,
+            tribe,
+            radius,
+        });
     }
 
-    pub fn spawn_nest(&self, x: u16, y: u16, tribe: u8) {
-        self.send_command(SimulationCommand::SpawnNest { x, y, tribe });
+    pub fn spawn_nest(&self, x: u16, y: u16, tribe: u8, radius: u8) {
+        self.send_command(SimulationCommand::SpawnNest {
+            x,
+            y,
+            tribe,
+            radius,
+        });
     }
 
-    pub fn spawn_food(&self, x: u16, y: u16, amount: u8) {
-        self.send_command(SimulationCommand::SpawnFood { x, y, amount });
+    pub fn spawn_food(&self, x: u16, y: u16, amount: u8, radius: u8) {
+        self.send_command(SimulationCommand::SpawnFood {
+            x,
+            y,
+            amount,
+            radius,
+        });
     }
 
     pub fn inspect_cell(&self, x: u16, y: u16) {
         self.send_command(SimulationCommand::Inspect { x, y });
+    }
+
+    pub fn force_step(&self) {
+        self.send_command(SimulationCommand::ForceStep);
     }
 }
 

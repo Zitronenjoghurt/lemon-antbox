@@ -2,6 +2,7 @@ use crate::simulation::pheromones::PheromoneType;
 
 pub struct AntSettings {
     pub pheromone_strength: f32,
+    pub pheromone_usage_per_step: f32,
     pub sensor_angle: f32,
     pub sensor_distance: f32,
     pub speed: f32,
@@ -14,6 +15,7 @@ impl Default for AntSettings {
     fn default() -> Self {
         Self {
             pheromone_strength: 1.0,
+            pheromone_usage_per_step: 0.005,
             sensor_angle: 0.4,
             sensor_distance: 10.0,
             speed: 1.0,
@@ -49,8 +51,8 @@ impl Default for SimulationSettings {
             tribe_count: 4,
             steps_per_second: 60,
             pheromone_decay: 0.9975,
-            pheromone_diffusion: 0.25,
-            nest_pheromone_strength: 5.0,
+            pheromone_diffusion: 0.75,
+            nest_pheromone_strength: 0.1,
             drawn_pheromone: Some(PheromoneType::Home),
             drawn_pheromone_max_heat: 10.0,
             drawn_pheromone_tribe: 0,

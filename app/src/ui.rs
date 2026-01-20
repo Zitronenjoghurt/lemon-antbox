@@ -80,6 +80,10 @@ impl Ui {
         self.main_window.draw_settings.draw_mode
     }
 
+    pub fn draw_radius(&self) -> u8 {
+        self.main_window.draw_settings.radius
+    }
+
     pub fn ant_tribe(&self) -> u8 {
         self.main_window.draw_settings.ant_tribe
     }

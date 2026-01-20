@@ -31,7 +31,7 @@ impl ThreadedContext {
                 }
             }
 
-            self.simulation.step();
+            self.simulation.step(false);
             self.sync_frame();
             self.sync_ant();
 
@@ -71,11 +71,25 @@ impl ThreadedContext {
             SimulationCommand::Clear => self.simulation.clear(),
             SimulationCommand::Inspect { x, y } => self.inspect(x, y),
             SimulationCommand::Shutdown => do_continue = false,
-            SimulationCommand::SpawnAnt { x, y, tribe } => self.simulation.spawn_ant(x, y, tribe),
-            SimulationCommand::SpawnNest { x, y, tribe } => self.simulation.spawn_nest(x, y, tribe),
-            SimulationCommand::SpawnFood { x, y, amount } => {
-                self.simulation.spawn_food(x, y, amount)
-            }
+            SimulationCommand::ForceStep => self.simulation.step(true),
+            SimulationCommand::SpawnAnt {
+                x,
+                y,
+                tribe,
+                radius,
+            } => self.simulation.spawn_ant(x, y, tribe, radius),
+            SimulationCommand::SpawnNest {
+                x,
+                y,
+                tribe,
+                radius,
+            } => self.simulation.spawn_nest(x, y, tribe, radius),
+            SimulationCommand::SpawnFood {
+                x,
+                y,
+                amount,
+                radius,
+            } => self.simulation.spawn_food(x, y, amount, radius),
         }
         do_continue
     }
