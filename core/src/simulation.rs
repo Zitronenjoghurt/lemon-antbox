@@ -99,7 +99,7 @@ impl Simulation {
     pub fn spawn_ant(&mut self, x: u16, y: u16, tribe: u8, radius: u8) {
         if x >= self.settings.width
             || y >= self.settings.height
-            || self.ants.len() > 65535
+            || self.ants.len() >= 65535
             || tribe >= self.settings.tribe_count
         {
             return;
@@ -107,6 +107,10 @@ impl Simulation {
 
         let coords = self.iter_coords_in_radius(x, y, radius).collect::<Vec<_>>();
         for (x, y) in coords {
+            if self.ants.len() >= 65535 {
+                return;
+            }
+
             let ant = Ant {
                 x: x as f32,
                 y: y as f32,
@@ -265,34 +269,11 @@ impl Simulation {
     }
 
     pub fn sense_for_ant(&self, ant: &Ant) -> AntSenses {
-        let pheromone = ant.desired_pheromone();
-
-        let left = if let Some(pheromone) = pheromone {
-            self.sample_pheromone(
-                ant,
-                ant.angle - self.settings.ant.sensor_angle,
-                self.settings.ant.sensor_distance,
-                pheromone,
-            )
+        let (pheromone_angle, pheromone_strength) = if let Some(pheromone) = ant.desired_pheromone()
+        {
+            self.sample_pheromone(ant, pheromone)
         } else {
-            0.0
-        };
-
-        let forward = if let Some(pheromone) = pheromone {
-            self.sample_pheromone(ant, ant.angle, self.settings.ant.sensor_distance, pheromone)
-        } else {
-            0.0
-        };
-
-        let right = if let Some(pheromone) = pheromone {
-            self.sample_pheromone(
-                ant,
-                ant.angle + self.settings.ant.sensor_angle,
-                self.settings.ant.sensor_distance,
-                pheromone,
-            )
-        } else {
-            0.0
+            (None, 0.0)
         };
 
         let cell_index = self.coords_to_index(ant.x as u16, ant.y as u16);
@@ -303,34 +284,64 @@ impl Simulation {
         };
 
         AntSenses {
-            left,
-            forward,
-            right,
+            pheromone_angle,
+            pheromone_strength,
             food,
             at_home,
         }
     }
 
-    fn sample_pheromone(
-        &self,
-        ant: &Ant,
-        angle: f32,
-        dist: f32,
-        pheromone_type: PheromoneType,
-    ) -> f32 {
-        let sx = ant.x + angle.cos() * dist;
-        let sy = ant.y + angle.sin() * dist;
+    fn sample_pheromone(&self, ant: &Ant, pheromone_type: PheromoneType) -> (Option<f32>, f32) {
+        let settings = &self.settings.ant;
+        let num_rays = settings.sensor_ray_count as usize;
+        let dist = settings.sensor_distance;
+        let w = self.settings.width as f32;
+        let h = self.settings.height as f32;
 
-        if sx < 0.0
-            || sy < 0.0
-            || sx >= self.settings.width as f32
-            || sy >= self.settings.height as f32
-        {
-            return 0.0;
+        let samples: Vec<(f32, f32)> = (0..num_rays)
+            .filter_map(|i| {
+                let t = if num_rays > 1 {
+                    i as f32 / (num_rays - 1) as f32
+                } else {
+                    0.5
+                };
+                let relative_angle = (t - 0.5) * settings.sensor_fov;
+                let world_angle = ant.angle + relative_angle;
+
+                let sx = ant.x + world_angle.cos() * dist;
+                let sy = ant.y + world_angle.sin() * dist;
+
+                if sx < 0.0 || sy < 0.0 || sx >= w || sy >= h {
+                    return None;
+                }
+
+                let strength = self
+                    .pheromones
+                    .get(ant.tribe, pheromone_type, sx as u16, sy as u16);
+
+                Some((relative_angle, strength))
+            })
+            .collect();
+
+        if samples.is_empty() {
+            return (None, 0.0);
         }
 
-        self.pheromones
-            .get(ant.tribe, pheromone_type, sx as u16, sy as u16)
+        let total_strength: f32 = samples.iter().map(|(_, s)| s).sum();
+        if total_strength < settings.pheromone_sense_threshold {
+            return (None, 0.0);
+        }
+
+        let weighted_angle: f32 = samples
+            .iter()
+            .map(|(angle, strength)| angle * strength)
+            .sum::<f32>()
+            / total_strength;
+
+        let clamped = weighted_angle.clamp(-settings.turn_angle, settings.turn_angle);
+        let avg_strength = total_strength / samples.len() as f32;
+
+        (Some(clamped), avg_strength)
     }
 
     fn apply_action(

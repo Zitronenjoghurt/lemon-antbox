@@ -13,6 +13,17 @@ pub struct SharedState {
     is_paused: AtomicBool,
     steps_per_second: AtomicU8,
     pheromone_decay: AtomicU32,
+    pheromone_diffusion: AtomicU32,
+    ant_pheromone_strength: AtomicU32,
+    ant_pheromone_usage_per_step: AtomicU32,
+    ant_pheromone_sense_threshold: AtomicU32,
+    ant_sensor_distance: AtomicU32,
+    ant_sensor_fov: AtomicU32,
+    ant_sensor_ray_count: AtomicU8,
+    ant_speed: AtomicU32,
+    ant_turn_angle: AtomicU32,
+    ant_wobble_strength: AtomicU32,
+    ant_spiral_expansion_rate: AtomicU32,
     drawn_pheromone: AtomicU8,
     drawn_pheromone_tribe: AtomicU8,
     inspected_ant: AtomicU32,
@@ -29,6 +40,21 @@ impl SharedState {
             is_paused: AtomicBool::new(settings.paused),
             steps_per_second: AtomicU8::new(settings.steps_per_second),
             pheromone_decay: AtomicU32::new(settings.pheromone_decay.to_bits()),
+            pheromone_diffusion: AtomicU32::new(settings.pheromone_diffusion.to_bits()),
+            ant_pheromone_strength: AtomicU32::new(settings.ant.pheromone_strength.to_bits()),
+            ant_pheromone_usage_per_step: AtomicU32::new(
+                settings.ant.pheromone_usage_per_step.to_bits(),
+            ),
+            ant_pheromone_sense_threshold: AtomicU32::new(
+                settings.ant.pheromone_sense_threshold.to_bits(),
+            ),
+            ant_sensor_distance: AtomicU32::new(settings.ant.sensor_distance.to_bits()),
+            ant_sensor_fov: AtomicU32::new(settings.ant.sensor_fov.to_bits()),
+            ant_sensor_ray_count: AtomicU8::new(settings.ant.sensor_ray_count),
+            ant_speed: AtomicU32::new(settings.ant.speed.to_bits()),
+            ant_turn_angle: AtomicU32::new(settings.ant.turn_angle.to_bits()),
+            ant_wobble_strength: AtomicU32::new(settings.ant.wobble_strength.to_bits()),
+            ant_spiral_expansion_rate: AtomicU32::new(settings.ant.spiral_expansion_rate.to_bits()),
             drawn_pheromone: AtomicU8::new(
                 settings.drawn_pheromone.map(|p| p as u8).unwrap_or(255),
             ),
@@ -42,6 +68,7 @@ impl SharedState {
         settings.paused = self.is_paused();
         settings.steps_per_second = self.steps_per_second();
         settings.pheromone_decay = self.pheromone_decay();
+        settings.pheromone_diffusion = self.pheromone_diffusion();
         settings.drawn_pheromone = self.drawn_pheromone();
         settings.drawn_pheromone_tribe = self.drawn_pheromone_tribe();
         self.set_inspected_ant(settings.inspected_ant);
@@ -111,6 +138,15 @@ impl SharedState {
     pub fn set_pheromone_decay(&self, decay: f32) {
         self.pheromone_decay
             .store(decay.to_bits(), Ordering::Relaxed);
+    }
+
+    pub fn pheromone_diffusion(&self) -> f32 {
+        f32::from_bits(self.pheromone_diffusion.load(Ordering::Relaxed))
+    }
+
+    pub fn set_pheromone_diffusion(&self, diffusion: f32) {
+        self.pheromone_diffusion
+            .store(diffusion.to_bits(), Ordering::Relaxed);
     }
 
     pub fn drawn_pheromone(&self) -> Option<PheromoneType> {

@@ -55,10 +55,11 @@ impl Widget for SimulationAnt<'_> {
                 ui.label(format!("{:?}", self.ant.desired_pheromone()));
                 ui.end_row();
 
-                ui.label("Pheromone sensors");
+                ui.label("Pheromone sensor");
                 ui.label(format!(
-                    "({:.2} | {:.2} | {:.2})",
-                    self.senses.left, self.senses.forward, self.senses.right
+                    "{:.2} @ {:.2}°",
+                    self.senses.pheromone_strength,
+                    self.senses.pheromone_angle.unwrap_or(0.0).to_degrees(),
                 ));
                 ui.end_row();
 

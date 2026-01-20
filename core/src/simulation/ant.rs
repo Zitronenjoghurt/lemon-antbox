@@ -3,27 +3,10 @@ use crate::simulation::settings::AntSettings;
 
 #[derive(Debug, Default, Clone, Copy)]
 pub struct AntSenses {
-    pub left: f32,
-    pub forward: f32,
-    pub right: f32,
+    pub pheromone_angle: Option<f32>,
+    pub pheromone_strength: f32,
     pub food: u8,
     pub at_home: bool,
-}
-
-impl AntSenses {
-    pub fn desired_turn(&self, turn_angle: f32) -> f32 {
-        if self.forward == 0.0 && self.left == 0.0 && self.right == 0.0 {
-            return 0.0;
-        }
-
-        if self.forward > self.left && self.forward > self.right {
-            0.0
-        } else if self.left > self.right {
-            -turn_angle
-        } else {
-            turn_angle
-        }
-    }
 }
 
 pub struct AntAction {
@@ -91,7 +74,7 @@ impl Ant {
         {
             std::f32::consts::PI
         } else {
-            senses.desired_turn(settings.turn_angle)
+            senses.pheromone_angle.unwrap_or(0.0)
         } + (fastrand::f32() - 0.5) * settings.wobble_strength;
 
         let pheromone_strength = if self.pheromone_reservoir > 0.0 {
